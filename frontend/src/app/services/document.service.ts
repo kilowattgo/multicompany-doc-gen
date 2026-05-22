@@ -5,7 +5,11 @@ import { Observable } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class DocumentService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:3001/api';
+  // In production (Docker), the backend is served via reverse proxy on the same domain at /api
+  // In development, it falls back to localhost:3001 if the app is served on localhost:4200
+  private apiUrl = window.location.hostname === 'localhost' && window.location.port === '4201' 
+    ? 'http://localhost:3001/api' 
+    : '/api';
 
   getCompanies(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/companies`);

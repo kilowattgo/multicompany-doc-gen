@@ -1,0 +1,35 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ${{ secrets.HOST_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Create project directory if it doesn't exist
+            mkdir -p ~/multicompany-doc-gen
+            cd ~/multicompany-doc-gen
+            
+            # Check if git is initialized, if not clone it, else pull
+            if [ ! -d ".git" ]; then
+              # Assuming the repo is public, or you have deploy keys set up
+              git clone https://github.com/${{ github.repository }}.git .
+            else
+              git reset --hard
+              git pull origin main
+            fi
+            
+            # Run docker compose
+            docker compose down
+            docker compose up -d --build

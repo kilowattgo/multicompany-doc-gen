@@ -171,11 +171,15 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
     });
     if (!document) return res.status(404).json({ message: 'Not found' });
 
-    const logoUrl = document.companyLogoSnapshot && req.headers.host
-      ? `http://${req.headers.host as string}${document.companyLogoSnapshot}` : '';
+    // In Docker, Puppeteer runs inside the backend container itself.
+    // It's safest to fetch images from localhost:3001 (the backend process) to avoid routing issues.
+    const baseUrl = 'http://localhost:3001';
 
-    const signatureUrl = document.includeSignature && document.companySignatureSnapshot && req.headers.host
-      ? `http://${req.headers.host as string}${document.companySignatureSnapshot}` : '';
+    const logoUrl = document.companyLogoSnapshot 
+      ? `${baseUrl}${document.companyLogoSnapshot}` : '';
+
+    const signatureUrl = document.includeSignature && document.companySignatureSnapshot
+      ? `${baseUrl}${document.companySignatureSnapshot}` : '';
 
     const typeTitleMap: any = {
       QUOTATION: 'ใบเสนอราคา',

@@ -129,7 +129,10 @@ export class CompanyFormComponent implements OnInit {
 
   getFullLogoUrl(path: string | null): string {
     if (!path) return '';
-    return `http://localhost:3001${path}`;
+    if (window.location.hostname === 'localhost' && window.location.port === '4201') {
+      return `http://localhost:3001${path}`;
+    }
+    return path;
   }
 
   onFileSelect(event: any, type: 'logo' | 'signature') {

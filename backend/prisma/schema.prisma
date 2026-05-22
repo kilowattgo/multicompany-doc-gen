@@ -13,6 +13,7 @@ model Company {
   address   String
   taxId     String
   logoUrl   String?
+  signatureUrl String?
   createdAt DateTime   @default(now())
   documents Document[]
 }
@@ -33,7 +34,7 @@ enum DocumentStatus {
 
 model Document {
   id                    Int            @id @default(autoincrement())
-  docNumber             String         @unique
+  docNumber             String
   type                  DocumentType
   status                DocumentStatus @default(DRAFT)
   
@@ -45,6 +46,7 @@ model Document {
   companyAddressSnapshot String
   companyTaxIdSnapshot  String
   companyLogoSnapshot   String?
+  companySignatureSnapshot String?
 
   // ข้อมูลลูกค้า
   customerName          String
@@ -57,10 +59,14 @@ model Document {
   vatAmount             Float
   grandTotal            Float
 
+  includeSignature      Boolean        @default(false)
+
   dueDate               DateTime?
   createdAt             DateTime       @default(now())
 
   items                 DocumentItem[]
+  
+  @@unique([docNumber, type])
 }
 
 model Customer {

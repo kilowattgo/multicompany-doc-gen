@@ -31,7 +31,7 @@ import { DocumentService } from '../services/document.service';
 
           <div>
             <label class="block text-sm text-gray-600 mb-1">Company Logo</label>
-            <input type="file" (change)="onFileSelect($event)" accept="image/*" class="w-full border p-2 rounded mb-2">
+            <input type="file" (change)="onFileSelect($event, 'logo')" accept="image/*" class="w-full border p-2 rounded mb-2">
             
             <!-- Logo Preview -->
             <div *ngIf="previewUrl || existingLogoUrl" class="mt-2 p-4 border rounded bg-gray-50 flex flex-col items-center">
@@ -39,6 +39,19 @@ import { DocumentService } from '../services/document.service';
               <img [src]="previewUrl || getFullLogoUrl(existingLogoUrl)" 
                    alt="Logo Preview" 
                    style="max-height: 150px; max-width: 250px; object-fit: contain; border: 1px dashed #ccc;">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">Signature Image (Optional)</label>
+            <input type="file" (change)="onFileSelect($event, 'signature')" accept="image/*" class="w-full border p-2 rounded mb-2">
+            
+            <!-- Signature Preview -->
+            <div *ngIf="signaturePreviewUrl || existingSignatureUrl" class="mt-2 p-4 border rounded bg-gray-50 flex flex-col items-center">
+              <span class="text-xs text-gray-500 mb-2">Signature Preview</span>
+              <img [src]="signaturePreviewUrl || getFullLogoUrl(existingSignatureUrl)" 
+                   alt="Signature Preview" 
+                   style="max-height: 80px; max-width: 150px; object-fit: contain; border: 1px dashed #ccc;">
             </div>
           </div>
 
@@ -61,6 +74,8 @@ import { DocumentService } from '../services/document.service';
             <div class="flex items-center gap-4">
               <img *ngIf="c.logoUrl" [src]="getFullLogoUrl(c.logoUrl)" alt="logo" class="h-12 w-12 object-contain border rounded p-1 bg-white">
               <div *ngIf="!c.logoUrl" class="h-12 w-12 border rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs">No Logo</div>
+              
+              <div *ngIf="c.signatureUrl" class="text-xs text-green-600 font-bold ml-2">✍️ Has Signature</div>
               
               <div>
                 <div class="font-bold text-blue-700">{{ c.name }}</div>
@@ -91,8 +106,11 @@ export class CompanyFormComponent implements OnInit {
   });
   
   selectedFile: File | null = null;
+  selectedSignatureFile: File | null = null;
   previewUrl: string | null = null;
+  signaturePreviewUrl: string | null = null;
   existingLogoUrl: string | null = null;
+  existingSignatureUrl: string | null = null;
   
   companies: any[] = [];
   isEditing = false;
@@ -114,14 +132,17 @@ export class CompanyFormComponent implements OnInit {
     return `http://localhost:3001${path}`;
   }
 
-  onFileSelect(event: any) {
+  onFileSelect(event: any, type: 'logo' | 'signature') {
     const file = event.target.files[0];
     if (file) {
-      this.selectedFile = file;
       const reader = new FileReader();
-      reader.onload = () => {
-        this.previewUrl = reader.result as string;
-      };
+      if (type === 'logo') {
+        this.selectedFile = file;
+        reader.onload = () => this.previewUrl = reader.result as string;
+      } else {
+        this.selectedSignatureFile = file;
+        reader.onload = () => this.signaturePreviewUrl = reader.result as string;
+      }
       reader.readAsDataURL(file);
     }
   }
@@ -129,9 +150,14 @@ export class CompanyFormComponent implements OnInit {
   editCompany(company: any) {
     this.isEditing = true;
     this.editingId = company.id;
+    
     this.existingLogoUrl = company.logoUrl;
     this.previewUrl = null;
     this.selectedFile = null;
+    
+    this.existingSignatureUrl = company.signatureUrl;
+    this.signaturePreviewUrl = null;
+    this.selectedSignatureFile = null;
     
     this.form.patchValue({
       name: company.name,
@@ -148,6 +174,9 @@ export class CompanyFormComponent implements OnInit {
     this.existingLogoUrl = null;
     this.previewUrl = null;
     this.selectedFile = null;
+    this.existingSignatureUrl = null;
+    this.signaturePreviewUrl = null;
+    this.selectedSignatureFile = null;
     this.form.reset();
   }
 
@@ -158,6 +187,7 @@ export class CompanyFormComponent implements OnInit {
     fd.append('address', this.form.value.address!);
     fd.append('taxId', this.form.value.taxId!);
     if (this.selectedFile) fd.append('logo', this.selectedFile);
+    if (this.selectedSignatureFile) fd.append('signature', this.selectedSignatureFile);
 
     if (this.isEditing && this.editingId) {
       this.docService.updateCompany(this.editingId, fd).subscribe({

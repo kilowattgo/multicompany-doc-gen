@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DocumentService } from '../services/document.service';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-history',
@@ -55,9 +56,12 @@ import { FormsModule } from '@angular/forms';
               <td class="p-3 border">{{ doc.company?.name || doc.companyNameSnapshot }}</td>
               <td class="p-3 border">{{ doc.customerName }}</td>
               <td class="p-3 border text-right font-bold">{{ doc.grandTotal | number:'1.2-2' }}</td>
-              <td class="p-3 border text-center">
+              <td class="p-3 border text-center space-x-2">
                 <button (click)="viewPdf(doc.id)" class="text-white bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm font-bold shadow-sm transition">
                   View PDF
+                </button>
+                <button (click)="editDocument(doc.id)" class="text-white bg-blue-500 hover:bg-blue-600 px-3 py-1 rounded text-sm font-bold shadow-sm transition">
+                  ✏️ Edit
                 </button>
               </td>
             </tr>
@@ -72,6 +76,7 @@ import { FormsModule } from '@angular/forms';
 })
 export class HistoryComponent implements OnInit {
   private docService = inject(DocumentService);
+  private router = inject(Router);
   
   documents: any[] = [];
   selectedType: string = '';
@@ -89,5 +94,9 @@ export class HistoryComponent implements OnInit {
 
   viewPdf(id: number) {
     this.docService.downloadPdf(id);
+  }
+
+  editDocument(id: number) {
+    this.router.navigate(['/document'], { queryParams: { id } });
   }
 }

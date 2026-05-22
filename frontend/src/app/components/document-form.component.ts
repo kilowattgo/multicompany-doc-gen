@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DocumentService } from '../services/document.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-document-form',
@@ -9,7 +10,7 @@ import { DocumentService } from '../services/document.service';
   imports: [CommonModule, ReactiveFormsModule],
   template: `
     <div class="p-6 max-w-4xl mx-auto bg-white shadow-lg rounded-xl mt-10 border">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">Create Document</h2>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">{{ isEditing ? 'Edit Document' : 'Create Document' }}</h2>
             <form [formGroup]="docForm" (ngSubmit)="onSubmit()" class="space-y-4">
           <!-- Company & Type Selection -->
           <div class="grid grid-cols-2 gap-4">
@@ -29,6 +30,18 @@ import { DocumentService } from '../services/document.service';
                 <option value="TAX_INVOICE">Tax Invoice (ใบกำกับภาษี)</option>
               </select>
             </div>
+          </div>
+          
+          <div class="mb-4">
+            <label class="block text-sm text-gray-600 mb-1">Document Number</label>
+            <input type="text" formControlName="docNumber" placeholder="Leave blank to auto-generate" class="w-full border p-2 rounded">
+          </div>
+          
+          <div class="mb-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" formControlName="includeSignature" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+              <span class="text-sm font-bold text-gray-700">✍️ Include Company Signature in PDF</span>
+            </label>
           </div>
 
           <hr class="my-4">
@@ -102,7 +115,7 @@ import { DocumentService } from '../services/document.service';
 
         <button type="submit" [disabled]="docForm.invalid || items.length === 0" 
                 class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400">
-          Save Document & Generate PDF
+          {{ isEditing ? 'Update Document & Generate PDF' : 'Save Document & Generate PDF' }}
         </button>
       </form>
     </div>
@@ -111,17 +124,23 @@ import { DocumentService } from '../services/document.service';
 export class DocumentFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private docService = inject(DocumentService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   companies: any[] = [];
   customers: any[] = [];
   subTotal = 0; vatAmount = 0; grandTotal = 0;
+  isEditing = false;
+  editingId: number | null = null;
 
   docForm: FormGroup = this.fb.group({
     companyId: ['', Validators.required],
     type: ['QUOTATION', Validators.required],
+    docNumber: [''],
     customerName: ['', Validators.required],
     customerAddress: ['', Validators.required],
     customerTaxId: ['', Validators.required],
+    includeSignature: [false],
     items: this.fb.array([])
   });
 
@@ -130,7 +149,47 @@ export class DocumentFormComponent implements OnInit {
   ngOnInit() {
     this.docService.getCompanies().subscribe(res => this.companies = res);
     this.docService.getCustomers().subscribe(res => this.customers = res);
-    this.addItem();
+    
+    this.route.queryParams.subscribe(params => {
+      if (params['id']) {
+        this.isEditing = true;
+        this.editingId = parseInt(params['id']);
+        this.loadDocumentData(this.editingId);
+      } else {
+        this.addItem();
+      }
+    });
+  }
+
+  loadDocumentData(id: number) {
+    this.docService.getDocumentById(id).subscribe({
+      next: (doc) => {
+        this.docForm.patchValue({
+          companyId: doc.companyId,
+          type: doc.type,
+          docNumber: doc.docNumber,
+          customerName: doc.customerName,
+          customerAddress: doc.customerAddress,
+          customerTaxId: doc.customerTaxId,
+          includeSignature: doc.includeSignature
+        });
+        
+        this.items.clear();
+        doc.items.forEach((item: any) => {
+          this.items.push(this.fb.group({
+            description: [item.description, Validators.required],
+            quantity: [item.quantity, [Validators.required, Validators.min(1)]],
+            pricePerUnit: [item.pricePerUnit, [Validators.required, Validators.min(0)]]
+          }));
+        });
+        this.calcTotals();
+      },
+      error: (err) => {
+        console.error(err);
+        alert('Failed to load document data');
+        this.router.navigate(['/history']);
+      }
+    });
   }
 
   onCustomerSelect(event: any) {
@@ -172,16 +231,40 @@ export class DocumentFormComponent implements OnInit {
 
   onSubmit() {
     if (this.docForm.valid) {
-      this.docService.createDocument(this.docForm.value).subscribe({
-        next: (res) => {
-          this.docService.downloadPdf(res.id); // เปิด PDF อัตโนมัติหลังสร้างสำเร็จ
-          this.docForm.reset({ type: 'QUOTATION' });
-          this.items.clear();
-          this.addItem();
-          this.calcTotals();
-        },
-        error: (err) => console.error(err)
-      });
+      if (this.isEditing && this.editingId) {
+        this.docService.updateDocument(this.editingId, this.docForm.value).subscribe({
+          next: (res) => {
+            this.docService.downloadPdf(res.id);
+            this.router.navigate(['/history']);
+          },
+          error: (err) => {
+            console.error(err);
+            if (err.status === 400 && err.error?.message) {
+              alert(err.error.message);
+            } else {
+              alert('Failed to update document');
+            }
+          }
+        });
+      } else {
+        this.docService.createDocument(this.docForm.value).subscribe({
+          next: (res) => {
+            this.docService.downloadPdf(res.id);
+            this.docForm.reset({ type: 'QUOTATION', includeSignature: false, docNumber: '' });
+            this.items.clear();
+            this.addItem();
+            this.calcTotals();
+          },
+          error: (err) => {
+            console.error(err);
+            if (err.status === 400 && err.error?.message) {
+              alert(err.error.message);
+            } else {
+              alert('Failed to create document');
+            }
+          }
+        });
+      }
     }
   }
 }

@@ -5,26 +5,29 @@ import puppeteer from 'puppeteer';
 const prisma = new PrismaClient();
 
 const generateDocNumber = async (type: string) => {
-  const prefixMap: any = { QUOTATION: 'QT', INVOICE: 'INV', BILL: 'BIL', TAX_INVOICE: 'TAX' };
-  const prefix = prefixMap[type] || 'DOC';
+  const prefixMap: any = { QUOTATION: 'QT', INVOICE: 'IV', BILL: 'BL', TAX_INVOICE: 'TI' };
+  const prefix = prefixMap[type] || 'DC';
   const date = new Date();
   const yearMonth = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
   
   const latestDoc = await prisma.document.findFirst({
-    where: { docNumber: { startsWith: `${prefix}-${yearMonth}-` } },
+    where: { docNumber: { startsWith: `${prefix}${yearMonth}` } },
     orderBy: { docNumber: 'desc' }
   });
 
   let runningNum = 1;
   if (latestDoc) {
-    runningNum = parseInt(latestDoc.docNumber.split('-')[2], 10) + 1;
+    const seqStr = latestDoc.docNumber.replace(`${prefix}${yearMonth}`, '');
+    const parsed = parseInt(seqStr, 10);
+    if (!isNaN(parsed)) runningNum = parsed + 1;
   }
-  return `${prefix}-${yearMonth}-${String(runningNum).padStart(4, '0')}`;
+  return `${prefix}${yearMonth}${String(runningNum).padStart(4, '0')}`;
 };
 
 export const createDocument = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate } = req.body;
+    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature } = req.body;
+    let customDocNumber = req.body.docNumber;
 
     const company = await prisma.company.findUnique({ where: { id: parseInt(companyId as string) } });
     if (!company) return res.status(404).json({ message: 'Company not found' });
@@ -45,17 +48,28 @@ export const createDocument = async (req: Request, res: Response, next: NextFunc
     const vatAmount = (subTotal * vatRate) / 100;
     const grandTotal = subTotal + vatAmount;
 
-    const docNumber = await generateDocNumber(type);
+    let finalDocNumber = customDocNumber && customDocNumber.trim() !== '' ? customDocNumber.trim() : await generateDocNumber(type);
+
+    if (customDocNumber && customDocNumber.trim() !== '') {
+      const existing = await prisma.document.findUnique({
+        where: { docNumber_type: { docNumber: finalDocNumber, type } }
+      });
+      if (existing) {
+        return res.status(400).json({ message: `Document number ${finalDocNumber} already exists for type ${type}` });
+      }
+    }
 
     const document = await prisma.$transaction(async (tx) => {
       return tx.document.create({
         data: {
-          docNumber, type,
+          docNumber: finalDocNumber, type,
           companyId: company.id,
           companyNameSnapshot: company.name,
           companyAddressSnapshot: company.address,
           companyTaxIdSnapshot: company.taxId,
           companyLogoSnapshot: company.logoUrl,
+          companySignatureSnapshot: company.signatureUrl,
+          includeSignature: includeSignature === true,
           customerName, customerAddress, customerTaxId,
           subTotal, vatRate, vatAmount, grandTotal,
           dueDate: dueDate ? new Date(dueDate) : null,
@@ -65,6 +79,85 @@ export const createDocument = async (req: Request, res: Response, next: NextFunc
     });
 
     res.status(201).json(document);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getDocumentById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const document = await prisma.document.findUnique({
+      where: { id: parseInt(req.params.id as string) },
+      include: { items: true }
+    });
+    if (!document) return res.status(404).json({ message: 'Document not found' });
+    res.json(document);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateDocument = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature, docNumber } = req.body;
+
+    const company = await prisma.company.findUnique({ where: { id: parseInt(companyId as string) } });
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    let subTotal = 0;
+    const processedItems = items.map((item: any) => {
+      const totalPrice = item.quantity * item.pricePerUnit;
+      subTotal += totalPrice;
+      return {
+        description: item.description,
+        quantity: item.quantity,
+        pricePerUnit: item.pricePerUnit,
+        totalPrice
+      };
+    });
+
+    const vatRate = 7.0;
+    const vatAmount = (subTotal * vatRate) / 100;
+    const grandTotal = subTotal + vatAmount;
+    
+    let updateData: any = {
+      type,
+      companyId: company.id,
+      companyNameSnapshot: company.name,
+      companyAddressSnapshot: company.address,
+      companyTaxIdSnapshot: company.taxId,
+      companyLogoSnapshot: company.logoUrl,
+      companySignatureSnapshot: company.signatureUrl,
+      includeSignature: includeSignature === true,
+      customerName, customerAddress, customerTaxId,
+      subTotal, vatRate, vatAmount, grandTotal,
+      dueDate: dueDate ? new Date(dueDate) : null,
+      items: { create: processedItems }
+    };
+
+    if (docNumber && docNumber.trim() !== '') {
+      const existing = await prisma.document.findUnique({
+        where: { docNumber_type: { docNumber: docNumber.trim(), type } }
+      });
+      if (existing && existing.id !== id) {
+        return res.status(400).json({ message: `Document number ${docNumber.trim()} already exists for type ${type}` });
+      }
+      updateData.docNumber = docNumber.trim();
+    }
+
+    const document = await prisma.$transaction(async (tx) => {
+      // Delete old items
+      await tx.documentItem.deleteMany({ where: { documentId: id } });
+
+      // Update document and insert new items
+      return tx.document.update({
+        where: { id },
+        data: updateData
+      });
+    });
+
+    res.json(document);
   } catch (error) {
     next(error);
   }
@@ -80,6 +173,9 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
 
     const logoUrl = document.companyLogoSnapshot && req.headers.host
       ? `http://${req.headers.host as string}${document.companyLogoSnapshot}` : '';
+
+    const signatureUrl = document.includeSignature && document.companySignatureSnapshot && req.headers.host
+      ? `http://${req.headers.host as string}${document.companySignatureSnapshot}` : '';
 
     const typeTitleMap: any = {
       QUOTATION: 'ใบเสนอราคา',
@@ -134,9 +230,10 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
           .terms ul { padding-left: 15px; margin: 0; }
           
           .signatures { display: flex; justify-content: space-between; margin-top: auto; text-align: center; font-size: 11px; padding: 0 40px; padding-bottom: 20px; }
-          .signature-box { width: 200px; }
+          .signature-box { width: 200px; position: relative; }
           .sign-title { font-weight: bold; margin-bottom: 40px; }
-          .sign-line { border-bottom: 1px solid #999; margin-bottom: 5px; }
+          .sign-line { border-bottom: 1px solid #999; margin-bottom: 5px; position: relative; z-index: 10; }
+          .sign-image { position: absolute; max-width: 150px; max-height: 80px; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 5; }
         </style>
       </head>
       <body>
@@ -229,6 +326,7 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
           </div>
           <div class="signature-box">
             <div class="sign-title">ผู้เสนอราคา</div>
+            ${signatureUrl ? `<img src="${signatureUrl}" class="sign-image">` : ''}
             <div class="sign-line"></div>
             <div>ฝ่ายขาย</div>
             <div style="margin-top: 5px;">วันที่ ${document.createdAt.toLocaleDateString('en-GB')}</div>

@@ -23,10 +23,13 @@ export const upload = multer({ storage });
 export const createCompany = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { name, address, taxId } = req.body;
-    const logoUrl = req.file ? `/uploads/logos/${req.file.filename}` : null;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    
+    const logoUrl = files?.['logo']?.[0] ? `/uploads/logos/${files['logo'][0].filename}` : null;
+    const signatureUrl = files?.['signature']?.[0] ? `/uploads/logos/${files['signature'][0].filename}` : null;
 
     const company = await prisma.company.create({
-      data: { name, address, taxId, logoUrl }
+      data: { name, address, taxId, logoUrl, signatureUrl }
     });
     res.status(201).json(company);
   } catch (error) {
@@ -47,10 +50,15 @@ export const updateCompany = async (req: Request, res: Response, next: NextFunct
   try {
     const id = parseInt(req.params.id as string);
     const { name, address, taxId } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     
     const dataToUpdate: any = { name, address, taxId };
-    if (req.file) {
-      dataToUpdate.logoUrl = `/uploads/logos/${req.file.filename}`;
+    
+    if (files?.['logo']?.[0]) {
+      dataToUpdate.logoUrl = `/uploads/logos/${files['logo'][0].filename}`;
+    }
+    if (files?.['signature']?.[0]) {
+      dataToUpdate.signatureUrl = `/uploads/logos/${files['signature'][0].filename}`;
     }
 
     const company = await prisma.company.update({

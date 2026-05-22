@@ -1,10 +1,12 @@
 import { Router } from 'express';
-import { createDocument, getDocumentPdf, getDocuments } from '../controllers/document.controller';
+import { createDocument, getDocuments, getDocumentPdf, getDocumentById, updateDocument } from '../controllers/document.controller';
 
 const router = Router();
 
-router.get('/', getDocuments);
 router.post('/', createDocument);
+router.get('/', getDocuments);
 router.get('/:id/pdf', getDocumentPdf);
+router.get('/:id', getDocumentById);
+router.put('/:id', updateDocument);
 
 export default router;

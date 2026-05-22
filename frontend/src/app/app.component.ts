@@ -14,7 +14,7 @@ import { CommonModule } from '@angular/common';
             📄 DocGen
           </div>
           <div class="flex gap-4">
-          <a routerLink="/issue" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Issue Document</a>
+          <a routerLink="/document" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Issue Document</a>
           <a routerLink="/history" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">History</a>
           <a routerLink="/company" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Companies</a>
           <a routerLink="/customer" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Customers</a>

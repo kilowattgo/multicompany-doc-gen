@@ -3,8 +3,10 @@ import { createCompany, getCompanies, updateCompany, upload } from '../controlle
 
 const router = Router();
 
-router.post('/', upload.single('logo'), createCompany);
+const cpUpload = upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'signature', maxCount: 1 }]);
+
+router.post('/', cpUpload, createCompany);
 router.get('/', getCompanies);
-router.put('/:id', upload.single('logo'), updateCompany);
+router.put('/:id', cpUpload, updateCompany);
 
 export default router;

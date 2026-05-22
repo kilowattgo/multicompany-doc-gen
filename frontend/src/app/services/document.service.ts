@@ -40,6 +40,14 @@ export class DocumentService {
     return this.http.post<any>(`${this.apiUrl}/documents`, data);
   }
 
+  getDocumentById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/documents/${id}`);
+  }
+
+  updateDocument(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/documents/${id}`, data);
+  }
+
   downloadPdf(docId: number) {
     this.http.get(`${this.apiUrl}/documents/${docId}/pdf`, { responseType: 'blob' })
       .subscribe((blob: Blob) => {

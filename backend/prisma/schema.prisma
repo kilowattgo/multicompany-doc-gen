@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id        Int        @id @default(autoincrement())
+  name      String
+  address   String
+  taxId     String
+  logoUrl   String?
+  createdAt DateTime   @default(now())
+  documents Document[]
+}
+
+enum DocumentType {
+  QUOTATION
+  INVOICE
+  BILL
+  TAX_INVOICE
+}
+
+enum DocumentStatus {
+  DRAFT
+  SENT
+  PAID
+  CANCELLED
+}
+
+model Document {
+  id                    Int            @id @default(autoincrement())
+  docNumber             String         @unique
+  type                  DocumentType
+  status                DocumentStatus @default(DRAFT)
+  
+  companyId             Int
+  company               Company        @relation(fields: [companyId], references: [id])
+  
+  // Snapshot กันข้อมูลบริษัทถูกแก้ไขย้อนหลัง
+  companyNameSnapshot   String
+  companyAddressSnapshot String
+  companyTaxIdSnapshot  String
+  companyLogoSnapshot   String?
+
+  // ข้อมูลลูกค้า
+  customerName          String
+  customerAddress       String
+  customerTaxId         String
+
+  // การคำนวณเงิน
+  subTotal              Float
+  vatRate               Float          @default(7.0)
+  vatAmount             Float
+  grandTotal            Float
+
+  dueDate               DateTime?
+  createdAt             DateTime       @default(now())
+
+  items                 DocumentItem[]
+}
+
+model DocumentItem {
+  id           Int      @id @default(autoincrement())
+  documentId   Int
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  description  String
+  quantity     Int
+  pricePerUnit Float
+  totalPrice   Float
+}

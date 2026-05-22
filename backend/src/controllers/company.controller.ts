@@ -42,3 +42,23 @@ export const getCompanies = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const updateCompany = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id as string);
+    const { name, address, taxId } = req.body;
+    
+    const dataToUpdate: any = { name, address, taxId };
+    if (req.file) {
+      dataToUpdate.logoUrl = `/uploads/logos/${req.file.filename}`;
+    }
+
+    const company = await prisma.company.update({
+      where: { id },
+      data: dataToUpdate
+    });
+    res.json(company);
+  } catch (error) {
+    next(error);
+  }
+};

@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import companyRoutes from './routes/company.routes';
 import documentRoutes from './routes/document.routes';
+import customerRoutes from './routes/customer.routes';
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 app.use('/api/companies', companyRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/customers', customerRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

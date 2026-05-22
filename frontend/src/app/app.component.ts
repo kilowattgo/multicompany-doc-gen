@@ -13,9 +13,12 @@ import { CommonModule } from '@angular/common';
           <div class="text-xl mr-4 flex items-center">
             📄 DocGen
           </div>
-          <a routerLink="/history" routerLinkActive="underline" class="hover:text-blue-200">History</a>
-          <a routerLink="/document" routerLinkActive="underline" class="hover:text-blue-200">Issue Document</a>
-          <a routerLink="/company" routerLinkActive="underline" class="hover:text-blue-200">Add Company</a>
+          <div class="flex gap-4">
+          <a routerLink="/issue" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Issue Document</a>
+          <a routerLink="/history" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">History</a>
+          <a routerLink="/company" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Companies</a>
+          <a routerLink="/customer" routerLinkActive="text-white" class="text-blue-200 hover:text-white font-semibold">Customers</a>
+          </div>
         </div>
       </nav>
       

@@ -20,6 +20,22 @@ export class DocumentService {
     return this.http.post(`${this.apiUrl}/companies`, formData);
   }
 
+  updateCompany(id: number, formData: FormData): Observable<any> {
+    return this.http.put(`${this.apiUrl}/companies/${id}`, formData);
+  }
+
+  getCustomers(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/customers`);
+  }
+
+  createCustomer(data: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/customers`, data);
+  }
+
+  updateCustomer(id: number, data: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/customers/${id}`, data);
+  }
+
   createDocument(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/documents`, data);
   }

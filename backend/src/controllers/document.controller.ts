@@ -26,7 +26,7 @@ const generateDocNumber = async (type: string) => {
 
 export const createDocument = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature } = req.body;
+    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature, includeVat } = req.body;
     let customDocNumber = req.body.docNumber;
 
     const company = await prisma.company.findUnique({ where: { id: parseInt(companyId as string) } });
@@ -44,7 +44,8 @@ export const createDocument = async (req: Request, res: Response, next: NextFunc
       };
     });
 
-    const vatRate = 7.0;
+    const hasVat = includeVat !== false; // defaults to true
+    const vatRate = hasVat ? 7.0 : 0.0;
     const vatAmount = (subTotal * vatRate) / 100;
     const grandTotal = subTotal + vatAmount;
 
@@ -100,7 +101,7 @@ export const getDocumentById = async (req: Request, res: Response, next: NextFun
 export const updateDocument = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = parseInt(req.params.id as string);
-    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature, docNumber } = req.body;
+    const { type, companyId, customerName, customerAddress, customerTaxId, items, dueDate, includeSignature, docNumber, includeVat } = req.body;
 
     const company = await prisma.company.findUnique({ where: { id: parseInt(companyId as string) } });
     if (!company) return res.status(404).json({ message: 'Company not found' });
@@ -117,7 +118,8 @@ export const updateDocument = async (req: Request, res: Response, next: NextFunc
       };
     });
 
-    const vatRate = 7.0;
+    const hasVat = includeVat !== false;
+    const vatRate = hasVat ? 7.0 : 0.0;
     const vatAmount = (subTotal * vatRate) / 100;
     const grandTotal = subTotal + vatAmount;
     
@@ -297,6 +299,7 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
 
         <div class="totals-container">
           <table class="totals-table">
+            ${document.vatRate > 0 ? `
             <tr>
               <td class="label-td">มูลค่าก่อนภาษี</td>
               <td class="font-bold">${document.subTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -305,6 +308,7 @@ export const getDocumentPdf = async (req: Request, res: Response, next: NextFunc
               <td class="label-td">ภาษีมูลค่าเพิ่ม (${document.vatRate}%)</td>
               <td class="font-bold">${document.vatAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
+            ` : ''}
             <tr class="grand-total-row">
               <td>จำนวนเงินทั้งสิ้น (THB)</td>
               <td>${document.grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>

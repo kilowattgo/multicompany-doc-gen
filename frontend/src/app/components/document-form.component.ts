@@ -37,10 +37,14 @@ import { ActivatedRoute, Router } from '@angular/router';
             <input type="text" formControlName="docNumber" placeholder="Leave blank to auto-generate" class="w-full border p-2 rounded">
           </div>
           
-          <div class="mb-2">
+          <div class="flex items-center gap-6 mb-2">
             <label class="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" formControlName="includeSignature" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
               <span class="text-sm font-bold text-gray-700">✍️ Include Company Signature in PDF</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" formControlName="includeVat" (change)="calcTotals()" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500">
+              <span class="text-sm font-bold text-gray-700">💰 Include VAT (7%)</span>
             </label>
           </div>
 
@@ -141,6 +145,7 @@ export class DocumentFormComponent implements OnInit {
     customerAddress: ['', Validators.required],
     customerTaxId: ['', Validators.required],
     includeSignature: [false],
+    includeVat: [true],
     items: this.fb.array([])
   });
 
@@ -171,7 +176,8 @@ export class DocumentFormComponent implements OnInit {
           customerName: doc.customerName,
           customerAddress: doc.customerAddress,
           customerTaxId: doc.customerTaxId,
-          includeSignature: doc.includeSignature
+          includeSignature: doc.includeSignature,
+          includeVat: doc.vatRate > 0
         });
         
         this.items.clear();
@@ -225,7 +231,8 @@ export class DocumentFormComponent implements OnInit {
 
   calcTotals() {
     this.subTotal = this.items.controls.reduce((sum, ctrl) => sum + this.getItemTotal(this.items.controls.indexOf(ctrl)), 0);
-    this.vatAmount = this.subTotal * 0.07;
+    const hasVat = this.docForm.get('includeVat')?.value;
+    this.vatAmount = hasVat ? this.subTotal * 0.07 : 0;
     this.grandTotal = this.subTotal + this.vatAmount;
   }
 
@@ -250,7 +257,7 @@ export class DocumentFormComponent implements OnInit {
         this.docService.createDocument(this.docForm.value).subscribe({
           next: (res) => {
             this.docService.downloadPdf(res.id);
-            this.docForm.reset({ type: 'QUOTATION', includeSignature: false, docNumber: '' });
+            this.docForm.reset({ type: 'QUOTATION', includeSignature: false, includeVat: true, docNumber: '' });
             this.items.clear();
             this.addItem();
             this.calcTotals();

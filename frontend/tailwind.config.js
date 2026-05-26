@@ -6,9 +6,9 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'cosmic-blue': '#7b81ec',
-        'cosmic-purple': '#e082e6',
-        'cosmic-bg': '#070a1a',
+        'pastel-bg': '#c9dff0',
+        'pastel-light': '#e0edf7',
+        'pastel-accent': '#1a1a1a',
       }
     },
   },

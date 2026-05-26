@@ -10,30 +10,30 @@ import { DocumentService } from '../services/document.service';
   template: `
     <div class="max-w-6xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
       <!-- Form Section -->
-      <div class="p-6 glass-panel">
-        <h2 class="text-xl font-bold gradient-text mb-4">{{ isEditing ? 'Edit Customer' : 'Add New Customer' }}</h2>
+      <div class="p-6 card-panel">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">{{ isEditing ? 'Edit Customer' : 'Add New Customer' }}</h2>
         <form [formGroup]="form" (ngSubmit)="onSubmit()" class="space-y-4">
           
           <div>
-            <label class="block text-sm text-gray-400 mb-1">Customer Name</label>
-            <input type="text" formControlName="name" class="w-full glass-input">
+            <label class="block text-sm text-gray-500 mb-1">Customer Name</label>
+            <input type="text" formControlName="name" class="w-full clean-input">
           </div>
           
           <div>
-            <label class="block text-sm text-gray-400 mb-1">Address</label>
-            <textarea formControlName="address" class="w-full glass-input" rows="3"></textarea>
+            <label class="block text-sm text-gray-500 mb-1">Address</label>
+            <textarea formControlName="address" class="w-full clean-input" rows="3"></textarea>
           </div>
           
           <div>
-            <label class="block text-sm text-gray-400 mb-1">Tax ID</label>
-            <input type="text" formControlName="taxId" class="w-full glass-input">
+            <label class="block text-sm text-gray-500 mb-1">Tax ID</label>
+            <input type="text" formControlName="taxId" class="w-full clean-input">
           </div>
 
           <div class="flex gap-2 mt-4">
-            <button type="submit" [disabled]="form.invalid" class="flex-1 gradient-btn disabled:opacity-40 disabled:cursor-not-allowed">
+            <button type="submit" [disabled]="form.invalid" class="flex-1 accent-btn disabled:opacity-40 disabled:cursor-not-allowed">
               {{ isEditing ? 'Update Customer' : 'Save Customer' }}
             </button>
-            <button *ngIf="isEditing" type="button" (click)="resetForm()" class="px-4 bg-white/10 text-white rounded-full font-bold hover:bg-white/20 transition-all">
+            <button *ngIf="isEditing" type="button" (click)="resetForm()" class="px-4 outline-btn">
               Cancel
             </button>
           </div>
@@ -41,16 +41,16 @@ import { DocumentService } from '../services/document.service';
       </div>
 
       <!-- List Section -->
-      <div class="p-6 glass-panel">
-        <h2 class="text-xl font-bold gradient-text mb-4">Customer List</h2>
+      <div class="p-6 card-panel">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Customer List</h2>
         <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-          <div *ngFor="let c of customers" class="border border-white/10 p-4 rounded-lg hover:bg-white/5 flex justify-between items-center transition">
+          <div *ngFor="let c of customers" class="border border-gray-100 p-4 rounded-lg hover:bg-pastel-light flex justify-between items-center transition">
             <div>
-              <div class="font-bold text-cosmic-blue">{{ c.name }}</div>
-              <div class="text-xs text-gray-400">Tax ID: {{ c.taxId }}</div>
-              <div class="text-xs text-gray-500 mt-1 line-clamp-1">{{ c.address }}</div>
+              <div class="font-bold text-gray-900">{{ c.name }}</div>
+              <div class="text-xs text-gray-500">Tax ID: {{ c.taxId }}</div>
+              <div class="text-xs text-gray-400 mt-1 line-clamp-1">{{ c.address }}</div>
             </div>
-            <button (click)="editCustomer(c)" class="bg-white/10 text-cosmic-purple px-3 py-1 text-sm font-bold rounded-full hover:bg-white/20 transition-all">
+            <button (click)="editCustomer(c)" class="bg-gray-100 text-gray-700 px-3 py-1 text-sm font-bold rounded hover:bg-gray-200 transition-all">
               Edit
             </button>
           </div>

@@ -9,8 +9,6 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: securepassword123
       POSTGRES_DB: doc_generator
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -23,8 +21,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://admin:securepassword123@db:5432/doc_generator?schema=public
       - PORT=3001
-    ports:
-      - "3001:3001"
     volumes:
       - ./uploads:/app/uploads
     depends_on:
@@ -37,7 +33,7 @@ services:
     container_name: doc-gen-frontend
     restart: always
     ports:
-      - "8088:80"
+      - "8085:80"
     depends_on:
       - backend
 
